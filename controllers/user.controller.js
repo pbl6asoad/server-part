@@ -1,34 +1,50 @@
 const User = require("../models/user.model");
 const jwt = require("jsonwebtoken");
 
-exports.user_signup = function (req, res) {
-  console.log(req.body);
+exports.user_find = function (req, res) {
+  User.find({login: req.params.login}, (err, doc) => {
+    if (err) throw err;
+    if (doc.length){
+      res.send(true)
+    } else {
+      res.send(false)
+    }    
+  });
+};
 
+exports.user_signup = function (req, res) {
   let user = {
     login: req.body.login,
     password: req.body.password,
-  };
+  };  
+  console.log(user);
+  let result = jwt.sign(user, "secret");
   User.create(user, function (err, doc) {
     if (err) return console.log(err);
     console.log("Сохранен объект user", doc);
-  });
-  let result = jwt.sign(user, "secret");
-  res.send({ token: result,
-  login: user.login });
+  }); 
+  res.send({ token: result, login: user.login });
 };
 
 exports.user_verification = function (req, res, next) {
-  if (req.body.token && req.body.token != undefined) {
-    var decoded = jwt.verify(req.body.token, "secret");
-    if (decoded) {
-      console.log("all is fine");
-      res.send({
-        isOk: true, 
-        login: decoded.login
-      });
-    } else {
-      next();
-    }
+  if (req.body.token != undefined && req.body.token != undefined) {
+    var decoded 
+    async () => {
+      decoded = jwt.verify(req.body.token, "secret");
+      let result = await decoded 
+      console.log(result);
+      if (decoded) {
+        res.send({
+          isOk: true,
+          login: decoded.login,
+        });
+      } else {
+        next();
+      }
+    }   
+    // console.log(req.body.token + " req.body.token");
+    // console.log(decoded + " decoded");
+
   } else {
     next();
   }
@@ -38,17 +54,19 @@ exports.user_login = function (req, res) {
     login: req.body.login,
     password: req.body.password,
   };
-  console.log(user);
   User.find(user, function (err, docs) {
-    if (err) {
+    if (err || docs.length < 1) {
+      console.log(docs);
       res.send({
         isOk: false,
       });
+    } else {
+      res.send({
+        isOk: true,
+        token: jwt.sign(user, "secret"),
+        login: user.login,
+      });
     }
-    res.send({
-      isOk: true,
-      token: jwt.sign(user, "secret"),
-      login: user.login
-    });
+
   });
 };
